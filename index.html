@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ElevenWinning</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="app">
+    <header>
+      <h1>ElevenWinning</h1>
+      <p>Compose 11 joueurs, puis simule un duel.</p>
+    </header>
+
+    <section class="card">
+      <h2>Équipe A</h2>
+      <label>Formation
+        <select id="formationA"></select>
+      </label>
+      <div id="teamA" class="team-grid"></div>
+    </section>
+
+    <section class="card">
+      <h2>Équipe B</h2>
+      <label>Formation
+        <select id="formationB"></select>
+      </label>
+      <div id="teamB" class="team-grid"></div>
+    </section>
+
+    <button id="simulate">Simuler</button>
+
+    <section class="card" id="result">
+      <h2>Résultat</h2>
+      <p id="winner">—</p>
+      <p id="probabilities">—</p>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
