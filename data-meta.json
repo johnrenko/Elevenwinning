@@ -1,0 +1,39 @@
+{
+  "provider": "verified-roster-supplement",
+  "season": "2025-26",
+  "lastSync": "2026-05-03",
+  "coverage": {
+    "leagues": ["Premier League", "La Liga", "Serie A", "Bundesliga", "Ligue 1"],
+    "minimumPlayers": 160,
+    "minimumPerRole": 40,
+    "actualPlayers": 475,
+    "actualPerRole": {
+      "GK": 63,
+      "DEF": 163,
+      "MID": 145,
+      "FWD": 104
+    },
+    "requestedClubs": ["PSG", "Bayern Munich", "Real Madrid", "Barcelona", "Manchester City", "Arsenal", "Manchester United", "Chelsea", "Juventus", "Inter", "AC Milan", "Liverpool"],
+    "auditedCorrectionClubs": ["Napoli"],
+    "normalPath": "offline-first verified roster supplement"
+  },
+  "sources": [
+    {
+      "name": "UEFA club squad pages",
+      "url": "https://www.uefa.com/uefachampionsleague/clubs/",
+      "usage": "2025-26 squad identities for Champions League clubs requested by the user"
+    },
+    {
+      "name": "UEFA national association squad pages",
+      "url": "https://www.uefa.com/nationalassociations/teams/",
+      "usage": "2025-26 domestic squad identity coverage for AC Milan and Napoli"
+    },
+    {
+      "name": "Premier League squad lists",
+      "url": "https://www.premierleague.com/en/news/4580687/202526-premier-league-squad-lists",
+      "usage": "2025-26 Manchester United registered squad and U21 identity coverage"
+    }
+  ],
+  "missingFields": [],
+  "confidence": 0.82
+}

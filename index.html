@@ -8,36 +8,70 @@
 </head>
 <body>
   <main class="app">
-    <header>
-      <h1>ElevenWinning</h1>
-      <p>Compose 11 joueurs, puis simule un duel.</p>
+    <header class="score-header">
+      <div>
+        <p class="brand">ElevenWinning</p>
+        <h1>Draft duel</h1>
+      </div>
+      <div class="score-pill" aria-label="Score des equipes">
+        <span>Equipe A <strong id="scoreA">0/11</strong></span>
+        <span>Equipe B <strong id="scoreB">0/11</strong></span>
+      </div>
     </header>
 
-    <section class="card">
-      <h2>Équipe A</h2>
-      <label>Formation
-        <select id="formationA"></select>
-      </label>
-      <div id="teamA" class="team-grid"></div>
+    <section class="intro-panel">
+      <h2>Compose deux XI, puis lance un match arcade base sur les stats saison.</h2>
+      <p>Chaque slot accepte n'importe quel joueur, les doublons sont bloques, et la simulation garde la probabilite stable pendant que la timeline met le chaos en scene.</p>
     </section>
 
-    <section class="card">
-      <h2>Équipe B</h2>
-      <label>Formation
-        <select id="formationB"></select>
-      </label>
-      <div id="teamB" class="team-grid"></div>
+    <section id="draftBoard" class="draft-board" aria-label="Plateau de draft"></section>
+
+    <section class="result-panel" id="result" hidden>
+      <div class="result-main">
+        <h2 id="winner">Resultat</h2>
+        <p id="probabilities">Complete les deux equipes.</p>
+      </div>
+      <div class="result-grid">
+        <div>
+          <h3>Facteurs</h3>
+          <ol id="decidingFactors"></ol>
+        </div>
+        <div>
+          <h3>Joueur cle</h3>
+          <p id="bestPlayer">-</p>
+          <h3>Point faible</h3>
+          <p id="weakLink">-</p>
+        </div>
+      </div>
+      <p id="whyResult" class="why-line">-</p>
+      <ol id="matchTimeline" class="match-timeline"></ol>
+      <button id="rematch" class="ghost-button" type="button">Rejouer la timeline</button>
     </section>
 
-    <button id="simulate">Simuler</button>
+    <aside id="playerPicker" class="picker-sheet" hidden>
+      <div class="picker-head">
+        <h2 id="pickerTitle">Choisir un joueur</h2>
+        <button id="closePicker" class="icon-button" type="button" aria-label="Fermer">x</button>
+      </div>
+      <input id="playerSearch" type="search" placeholder="Rechercher nom, club, role..." autocomplete="off" />
+      <div id="leagueFilter" class="league-filter" aria-label="Filtrer par ligue">
+        <button class="league-chip is-active" data-league="ALL" type="button">Toutes</button>
+        <button class="league-chip" data-league="Premier League" type="button">PL</button>
+        <button class="league-chip" data-league="La Liga" type="button">Liga</button>
+        <button class="league-chip" data-league="Serie A" type="button">Serie A</button>
+        <button class="league-chip" data-league="Bundesliga" type="button">Bundes</button>
+        <button class="league-chip" data-league="Ligue 1" type="button">L1</button>
+      </div>
+      <div id="pickerList" class="picker-list"></div>
+    </aside>
 
-    <section class="card" id="result">
-      <h2>Résultat</h2>
-      <p id="winner">—</p>
-      <p id="probabilities">—</p>
-    </section>
+    <nav class="bottom-action-bar" aria-label="Actions principales">
+      <button id="autoFill" class="ghost-button" type="button">Auto XI</button>
+      <button id="simulate" class="primary-button" type="button">Simuler</button>
+    </nav>
   </main>
 
+  <script src="data/requested-club-roster-supplement.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

@@ -1,0 +1,9 @@
+{
+  "name": "elevenwinning",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "validate:data": "node scripts/validate-data.js",
+    "test": "node --test tests/*.test.js"
+  }
+}
