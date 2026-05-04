@@ -1427,6 +1427,25 @@ function boot(api) {
     updateReplayControls();
   }
 
+  function focusTimelineFrame(frameIndex, shouldOpen) {
+    const result = state.latestResult;
+    if (!result || !result.liveFrames[frameIndex]) return;
+    const frame = result.liveFrames[frameIndex];
+    state.liveMinute = frame.minute;
+    state.revealedFrames = Math.max(state.revealedFrames, frameIndex + 1);
+    state.replayPaused = true;
+    updateLiveCard(frame);
+    renderTimeline(result.timeline, state.revealedFrames, frameIndex);
+    const item = matchTimeline.querySelector(`[data-timeline-index="${frameIndex}"]`)?.closest('.timeline-event');
+    const detail = item && item.querySelector('.timeline-detail');
+    if (item && detail) {
+      item.classList.toggle('is-open', shouldOpen);
+      item.querySelector('.timeline-trigger').setAttribute('aria-expanded', String(shouldOpen));
+      detail.hidden = !shouldOpen;
+      item.scrollIntoView({ block: 'nearest', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+    }
+  }
+
   draftBoard.addEventListener('click', (event) => {
     const formationButton = event.target.closest('.formation-chip');
     if (formationButton) {
@@ -1478,11 +1497,8 @@ function boot(api) {
     const trigger = event.target.closest('.timeline-trigger');
     if (!trigger) return;
     const item = trigger.closest('.timeline-event');
-    const detail = item.querySelector('.timeline-detail');
     const isOpen = !item.classList.contains('is-open');
-    item.classList.toggle('is-open', isOpen);
-    trigger.setAttribute('aria-expanded', String(isOpen));
-    detail.hidden = !isOpen;
+    focusTimelineFrame(Number(trigger.dataset.timelineIndex), isOpen);
   });
 
   render();

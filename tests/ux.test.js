@@ -59,6 +59,9 @@ test('result surface includes fun simulation timeline and explainable stat-backe
   assert.match(js, /toggleReplayPause/);
   assert.match(js, /skipToNextHighlight/);
   assert.match(js, /showInstantResult/);
+  assert.match(js, /focusTimelineFrame/);
+  assert.match(js, /state\.liveMinute\s*=\s*frame\.minute/);
+  assert.match(js, /state\.replayPaused\s*=\s*true/);
   assert.match(js, /scoreAfter/);
   assert.match(js, /scorer/);
   assert.match(js, /matchState/);
