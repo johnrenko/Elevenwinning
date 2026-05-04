@@ -66,15 +66,34 @@ test('exports the domain helpers used by tests and the browser', () => {
   for (const key of [
     'players',
     'formations',
+    'simulationModel',
     'normalizePlayer',
     'validateTeam',
     'calculateTeamStrength',
     'simulateMatch',
     'searchPlayers',
-    'buildFormationSlots'
+    'buildFormationSlots',
+    'buildLiveFrames'
   ]) {
     assert.ok(app[key], `missing export: ${key}`);
   }
+});
+
+test('slot-index fallback applies the same role model as explicit slot ids', () => {
+  const ids = validIdsFor433();
+  const slots = app.buildFormationSlots('4-3-3');
+  const withSlotIndex = makeTeam(ids);
+  const withSlotId = {
+    formation: '4-3-3',
+    picks: ids.map((playerId, slotIndex) => ({ playerId, slotIndex, slotId: slots[slotIndex].id }))
+  };
+
+  const indexed = app.calculateTeamStrength(withSlotIndex);
+  const explicit = app.calculateTeamStrength(withSlotId);
+
+  assert.equal(indexed.total, explicit.total);
+  assert.deepEqual(indexed.areas, explicit.areas);
+  assert.equal(indexed.roleFit, explicit.roleFit);
 });
 
 test('extended player database covers the top five leagues with normalized season fields', () => {
@@ -172,6 +191,44 @@ test('team validation allows any player in any slot while enforcing XI size and 
   assert.ok(strength.areas.defense > 0, 'forwards in DEF slots should still occupy defensive roles');
 });
 
+test('forward in the goalkeeper slot is a severe tactical handicap', () => {
+  const balanced = makeTeam(validIdsFor433());
+  const balancedStrength = app.calculateTeamStrength(balanced);
+  const replacementForward = app.players.find((player) => player.position === 'FWD' && !balanced.picks.some((pick) => pick.playerId === player.id));
+  const noKeeper = {
+    formation: '4-3-3',
+    picks: balanced.picks.map((pick, index) => index === 0 ? { ...pick, playerId: replacementForward.id } : pick)
+  };
+
+  const noKeeperStrength = app.calculateTeamStrength(noKeeper);
+  const result = app.simulateMatch(balanced, noKeeper, { seed: 'forward-gk' });
+
+  assert.equal(noKeeperStrength.valid, true);
+  assert.ok(noKeeperStrength.total <= balancedStrength.total - 12, 'a forward in goal must materially reduce team strength');
+  assert.ok(noKeeperStrength.risk >= app.simulationModel.crisisPenalties.noNaturalKeeper);
+  assert.ok(noKeeperStrength.mismatches.some((mismatch) => mismatch.nativePosition === 'FWD' && mismatch.assignedPosition === 'GK'));
+  assert.ok(noKeeperStrength.explainers.join(' ').includes('gardien'));
+  assert.ok(result.probabilities.A >= 0.75, 'a balanced XI should become a heavy favorite against a forward goalkeeper');
+  assert.equal(result.winner, 'A');
+});
+
+test('adjacent off-role picks are penalized without becoming a full crisis', () => {
+  const balanced = makeTeam(validIdsFor433());
+  const replacementMidfielder = app.players.find((player) => player.position === 'MID' && !balanced.picks.some((pick) => pick.playerId === player.id));
+  const midfielderAtDefender = {
+    formation: '4-3-3',
+    picks: balanced.picks.map((pick, index) => index === 1 ? { ...pick, playerId: replacementMidfielder.id } : pick)
+  };
+
+  const balancedStrength = app.calculateTeamStrength(balanced);
+  const offRoleStrength = app.calculateTeamStrength(midfielderAtDefender);
+
+  assert.ok(offRoleStrength.total < balancedStrength.total);
+  assert.ok(balancedStrength.total - offRoleStrength.total < 10, 'one MID-to-DEF swap should hurt but not destroy the XI');
+  assert.equal(offRoleStrength.crisis.some((item) => item.type === 'noNaturalDefenders'), false);
+  assert.ok(offRoleStrength.mismatches.some((mismatch) => mismatch.nativePosition === 'MID' && mismatch.assignedPosition === 'DEF'));
+});
+
 test('stat normalization is deterministic and protects against missing values and zero minutes', () => {
   const normalized = app.normalizePlayer({
     id: 'test-player',
@@ -192,8 +249,12 @@ test('stat normalization is deterministic and protects against missing values an
 });
 
 test('simulation is bounded, stat-backed, explainable, and fun to replay', () => {
-  const strongTeam = makeTeam(validIdsFor433(0));
-  const weakerTeam = makeTeam(validIdsFor433(1));
+  const candidateA = makeTeam(validIdsFor433(0));
+  const candidateB = makeTeam(validIdsFor433(1));
+  const candidateAStrength = app.calculateTeamStrength(candidateA);
+  const candidateBStrength = app.calculateTeamStrength(candidateB);
+  const strongTeam = candidateAStrength.total >= candidateBStrength.total ? candidateA : candidateB;
+  const weakerTeam = candidateAStrength.total >= candidateBStrength.total ? candidateB : candidateA;
   const result = app.simulateMatch(strongTeam, weakerTeam);
 
   assert.ok(result.probabilities.A > result.probabilities.B, 'stronger team should receive higher probability');
@@ -204,20 +265,84 @@ test('simulation is bounded, stat-backed, explainable, and fun to replay', () =>
   assert.ok(result.weakLink.name);
   assert.match(result.why, /parce que|grâce|malgré|pression|contrôle/i);
   assert.ok(result.scoreBand.includes('-'), 'expected score band copy such as 2-1');
+  assert.equal(result.liveFrames.length, result.timeline.length);
+  assert.ok(result.tacticalReport.length >= 8);
 
   assert.ok(result.timeline.length >= 8, 'timeline needs enough moments to feel arcade-like');
   assert.ok(result.timeline.length <= 12, 'timeline should stay short enough for a 10-15 second replay');
   assert.ok(result.timeline.some((event) => ['momentum', 'chance', 'goal', 'save'].includes(event.type)));
+  assert.ok(new Set(result.timeline.map((event) => event.type)).size >= 5, 'timeline should mix different event families');
   for (const event of result.timeline) {
     assert.ok(event.minute >= 1 && event.minute <= 90);
     assert.ok(['A', 'B', 'neutral'].includes(event.team));
     assert.ok(event.text.length > 12);
+    assert.ok(event.label.length >= 3);
+    assert.ok(event.phase.length >= 5);
+    assert.ok(event.detail.length > 12);
+    assert.ok(event.intensity >= 18 && event.intensity <= 100);
+    assert.match(event.scoreAfter, /^\d-\d$/);
+    assert.ok(event.matchState, 'events should expose match-state cause and effect');
     assert.ok(Math.abs(event.impact) <= 12, 'timeline randomness should not dominate the stat model');
+  }
+
+  const goals = result.timeline.filter((event) => event.type === 'goal');
+  assert.ok(goals.length >= 1, 'live replay needs at least one score-changing goal event');
+  for (const goal of goals) {
+    assert.equal(goal.isScoreChange, true);
+    assert.ok(goal.scorer && goal.scorer.length > 2);
+    assert.doesNotMatch(goal.text, /gardien ferme|sauvetage|arret/i, 'goal copy must not reuse save or blocked-shot language');
+    assert.match(goal.scoreAfter, /^\d-\d$/);
+  }
+  const finalFrame = result.liveFrames.at(-1);
+  assert.equal(`${finalFrame.scoreA}-${finalFrame.scoreB}`, result.scoreBand);
+  assert.equal(finalFrame.status, 'FT');
+  assert.ok(result.liveFrames.some((frame, index, frames) => index > 0 && `${frame.scoreA}-${frame.scoreB}` !== `${frames[index - 1].scoreA}-${frames[index - 1].scoreB}`), 'scoreboard should mutate during goal frames');
+  assert.ok(result.liveFrames.every((frame, index, frames) => index === 0 || frame.minute >= frames[index - 1].minute), 'live clock frames should move forward');
+  for (let index = 1; index < result.liveFrames.length; index += 1) {
+    const frame = result.liveFrames[index];
+    if (frame.event.type !== 'goal') continue;
+    const previous = result.liveFrames[index - 1];
+    if (frame.event.team === 'A') assert.ok(frame.momentumA >= previous.momentumA, 'A momentum should rise or cap after an A goal');
+    if (frame.event.team === 'B') assert.ok(frame.momentumB >= previous.momentumB, 'B momentum should rise or cap after a B goal');
+    assert.ok(frame.stats.xgA >= 0 && frame.stats.xgB >= 0);
   }
 
   const chemistryHeavy = app.calculateTeamStrength(strongTeam, { ignoreChemistry: false });
   const rawOnly = app.calculateTeamStrength(strongTeam, { ignoreChemistry: true });
   assert.ok(Math.abs(chemistryHeavy.total - rawOnly.total) <= 8, 'chemistry and formation caps cannot dominate raw stats');
+});
+
+test('seeded close-game variance can create upsets but not severe mismatch wins', () => {
+  const closeTeam = makeTeam(validIdsFor433());
+  const closeWinners = new Set();
+  for (let seed = 1; seed <= 30; seed += 1) {
+    closeWinners.add(app.simulateMatch(closeTeam, closeTeam, { seed }).winner);
+  }
+  assert.deepEqual(closeWinners, new Set(['A', 'B']));
+
+  const replacementForward = app.players.find((player) => player.position === 'FWD' && !closeTeam.picks.some((pick) => pick.playerId === player.id));
+  const noKeeper = {
+    formation: '4-3-3',
+    picks: closeTeam.picks.map((pick, index) => index === 0 ? { ...pick, playerId: replacementForward.id } : pick)
+  };
+  for (let seed = 1; seed <= 20; seed += 1) {
+    assert.equal(app.simulateMatch(closeTeam, noKeeper, { seed }).winner, 'A');
+  }
+});
+
+test('timeline replay seed changes narration without changing the seeded result', () => {
+  const closeTeam = makeTeam(validIdsFor433());
+  const firstReplay = app.simulateMatch(closeTeam, closeTeam, { seed: 'same-outcome', timelineSeed: 'timeline-one' });
+  const secondReplay = app.simulateMatch(closeTeam, closeTeam, { seed: 'same-outcome', timelineSeed: 'timeline-two' });
+
+  assert.equal(firstReplay.winner, secondReplay.winner);
+  assert.equal(firstReplay.scoreBand, secondReplay.scoreBand);
+  assert.deepEqual(firstReplay.probabilities, secondReplay.probabilities);
+  assert.notDeepEqual(
+    firstReplay.timeline.map((event) => `${event.type}:${event.text}`),
+    secondReplay.timeline.map((event) => `${event.type}:${event.text}`),
+    'replays should diversify the timeline while keeping the stat-backed result stable'
+  );
 });
 
 test('local search supports instant drafting filters without runtime API calls', () => {

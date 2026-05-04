@@ -11,11 +11,12 @@
     <header class="score-header">
       <div>
         <p class="brand">ElevenWinning</p>
-        <h1>Draft duel</h1>
+        <h1 id="headerTitle">Draft duel</h1>
       </div>
       <div class="score-pill" aria-label="Score des equipes">
-        <span>Equipe A <strong id="scoreA">0/11</strong></span>
-        <span>Equipe B <strong id="scoreB">0/11</strong></span>
+        <span id="headerStatus">Draft</span>
+        <strong id="headerScoreline">0/11 - 0/11</strong>
+        <small id="headerEvent">Compose les XI</small>
       </div>
     </header>
 
@@ -27,6 +28,37 @@
     <section id="draftBoard" class="draft-board" aria-label="Plateau de draft"></section>
 
     <section class="result-panel" id="result" hidden>
+      <div class="live-card" aria-label="Live match center">
+        <div class="live-card__top">
+          <span id="liveStatus" class="live-status">Avant-match</span>
+          <span id="liveClock" class="live-clock">00'</span>
+        </div>
+        <div class="live-scoreboard">
+          <span id="liveNameA">Equipe A</span>
+          <strong><span id="liveScoreA">0</span>-<span id="liveScoreB">0</span></strong>
+          <span id="liveNameB">Equipe B</span>
+        </div>
+        <div class="live-event">
+          <span id="liveEventLabel">Match center</span>
+          <p id="liveEventText">Lance une simulation pour suivre les temps forts.</p>
+        </div>
+        <div class="momentum-bars" aria-label="Momentum du match">
+          <span id="momentumA"></span>
+          <span id="momentumB"></span>
+        </div>
+        <dl class="live-stats">
+          <div><dt>Tirs</dt><dd id="shotsStat">0 - 0</dd></div>
+          <div><dt>xG</dt><dd id="xgStat">0.00 - 0.00</dd></div>
+          <div><dt>Menace</dt><dd id="threatStat">0 - 0</dd></div>
+          <div><dt>Cartons</dt><dd id="cardsStat">0 - 0</dd></div>
+          <div><dt>Poss.</dt><dd id="possessionStat">50 - 50</dd></div>
+        </dl>
+        <div class="replay-controls" aria-label="Controle du replay">
+          <button id="pauseReplay" type="button">Pause</button>
+          <button id="nextHighlight" type="button">Prochain</button>
+          <button id="instantResult" type="button">Final</button>
+        </div>
+      </div>
       <div class="result-main">
         <h2 id="winner">Resultat</h2>
         <p id="probabilities">Complete les deux equipes.</p>
@@ -44,6 +76,15 @@
         </div>
       </div>
       <p id="whyResult" class="why-line">-</p>
+      <div class="match-tabs" aria-label="Sections du match">
+        <button class="is-active" data-tab="resume" type="button">Resume</button>
+        <button data-tab="highlights" type="button">Temps forts</button>
+        <button data-tab="stats" type="button">Stats</button>
+        <button data-tab="lineups" type="button">Compos</button>
+        <button data-tab="ratings" type="button">Notes</button>
+      </div>
+      <div id="tabPanel" class="tab-panel" aria-live="polite"></div>
+      <div id="tacticalReport" class="tactical-report" aria-label="Analyse tactique"></div>
       <ol id="matchTimeline" class="match-timeline"></ol>
       <button id="rematch" class="ghost-button" type="button">Rejouer la timeline</button>
     </section>
@@ -67,6 +108,7 @@
 
     <nav class="bottom-action-bar" aria-label="Actions principales">
       <button id="autoFill" class="ghost-button" type="button">Auto XI</button>
+      <button id="quickLive" class="ghost-button" type="button">Quick live</button>
       <button id="simulate" class="primary-button" type="button">Simuler</button>
     </nav>
   </main>
